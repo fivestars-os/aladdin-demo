@@ -1,0 +1,18 @@
+# Values here will overwrite values.yaml defaults. These values are used when deploying to KPROD cluster
+
+elasticsearch:
+  create: false
+  populate: false
+
+redis:
+  create: false
+
+# Configurations for setting up apm tracing
+apm:
+  enable: true
+  datadog_env: prod
+affinity: critical-datadog-apm
+
+app:
+  uwsgi:
+    processes: 16

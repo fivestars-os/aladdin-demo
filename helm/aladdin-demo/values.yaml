@@ -1,0 +1,66 @@
+# This is the default values file, which should be treated as a template. Values should only be defined
+# here if they are shared accross all non-local environments. However, list and comment on all potential values.
+
+app:
+  uwsgi:
+    port: 8000
+    # processes: 16
+  nginx:
+    use: true
+    port: 80
+    httpPort: 80
+    httpsPort: 443
+  # liveness probe will restart the pod if it detects that it is unhealty
+  liveness:
+    use: true
+    # number of seconds before the first probe
+    initialDelay: 15
+    # number of seconds for frequency between probes
+    period: 120
+  # readiness probe will hold off traffic and wait until the pod is ready
+  readiness:
+    use: true
+    initialDelay: 5
+    period: 60
+
+# Configurations for setting up apm tracing
+apm:
+  enable: false
+  datadog_trace_agent_hostname: datadog-agent.kube-system
+  datadog_env:
+
+deploy:
+  # number of seconds for the containers to perform a graceful shutdown, after which it is voilently terminated
+  terminationGracePeriod: 50
+  replicas: 1
+
+redis:
+  # create: true
+  port: 6379
+  containerPort: 6379
+  liveness:
+    # use: true
+    initialDelay: 10
+    period: 15
+  readiness:
+    use: #true
+    initialDelay: 5
+    period: 10
+
+elasticsearch:
+  # create: true
+  # populate: true
+  # The elasticsearch config file is chown'd to the user of this id
+  # 1000 is the uid of the first non-root user created, in our case that is the elasticsearch user
+  # id: 1000
+  # port: 9200
+  # containerPort: 9200
+  # storage: 1Gi
+  liveness:
+    # use: true
+    initialDelay: 10
+    period: 60
+  readiness:
+    # use: true
+    initialDelay: 10
+    period: 30

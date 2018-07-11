@@ -1,0 +1,2 @@
+# InitContainers
+InitContainers are generally lightweight containers that contain a few simple instructuions. The initContainers must run and successfully exit before a deployment's pods can start. If it fails, Kubernetes will keep trying to restart the initContainers until it is successful. You can have multiple initContainers, and they will simply execute one by one in the order they are defined. We look at specific examples of how we use initContainers with [nginx](./nginx.md#nginx-initcontainer) and [redis](./redis.md#redis-initcontainer).

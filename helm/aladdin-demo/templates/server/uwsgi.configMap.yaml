@@ -1,0 +1,14 @@
+# ConfigMap for uwsgi
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ .Chart.Name }}-uwsgi
+  labels:
+    project: {{ .Chart.Name }}
+    app: {{ .Chart.Name }}-uwsgi
+    name: {{ .Chart.Name }}-uwsgi
+    githash: {{ .Values.deploy.imageTag }}
+data:
+  # Make the key the desired name for the file
+  # When mounted, this will create a uwsgi.yaml file with the contents in uwsgi-config template
+  uwsgi.yaml: {{ include "uwsgi-config" . | quote }}

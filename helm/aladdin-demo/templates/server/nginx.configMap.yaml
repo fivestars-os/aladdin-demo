@@ -1,0 +1,14 @@
+# ConfigMap for nginx
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ .Chart.Name }}-nginx
+  labels: 
+    project: {{ .Chart.Name }}
+    app: {{ .Chart.Name }}-nginx
+    name: {{ .Chart.Name }}-nginx
+    githash: {{ .Values.deploy.imageTag }}
+data:
+  # Make the key the desired name for the file
+  # When mounted, this will create a nginx.conf file with the contents in nginx-config template
+  nginx.conf: {{ include "nginx-config" . | quote }}

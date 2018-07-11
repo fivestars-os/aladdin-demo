@@ -1,0 +1,14 @@
+{{ if .Values.deploy.withMount }}
+kind: PersistentVolumeClaim
+apiVersion: v1
+metadata:
+  name: {{ .Chart.Name }}-nfs-volume-claim
+spec:
+  storageClassName: standard
+  accessModes:
+    - ReadWriteMany
+  resources:
+    requests:
+      storage: 1Gi
+  volumeName: {{ .Chart.Name }}-nfs-volume
+{{ end }}

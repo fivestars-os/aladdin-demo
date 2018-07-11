@@ -1,0 +1,13 @@
+# ConfigMap for elasticsearch
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ .Chart.Name }}-elasticsearch
+  labels: 
+    project: {{ .Chart.Name }}
+    app: {{ .Chart.Name }}-elasticsearch
+    name: {{ .Chart.Name }}-elasticsearch
+    githash: {{ .Values.deploy.imageTag }}
+data:
+  # When mounted, this will create a elasticsearch.yml file with the contents in elasticsearch-config template
+  elasticsearch.yml: {{ include "elasticsearch-config" . | quote }}

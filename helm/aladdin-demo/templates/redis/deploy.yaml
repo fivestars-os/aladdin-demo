@@ -1,0 +1,43 @@
+{{if .Values.redis.create }}
+apiVersion: apps/v1beta2
+kind: Deployment
+metadata:
+  name: {{ .Chart.Name }}-redis
+  labels:
+    project: {{ .Chart.Name }}
+    name: {{ .Chart.Name }}-redis
+    app: {{ .Chart.Name }}-redis
+    githash: {{ .Values.deploy.imageTag }}
+spec:
+  selector:
+    matchLabels:
+      app: {{ .Chart.Name }}-redis
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        project: {{ .Chart.Name }}
+        name: {{ .Chart.Name }}-redis
+        app: {{ .Chart.Name }}-redis
+    spec:
+      containers:
+      - name: {{ .Chart.Name }}-redis
+        image: redis:2.8
+        ports:
+        - containerPort: {{ .Values.redis.containerPort }}
+          protocol: TCP
+        {{ if .Values.redis.readiness.use }}
+        readinessProbe:
+          tcpSocket:
+            port: {{ .Values.redis.port }}
+          initialDelaySeconds: {{ .Values.redis.readiness.initialDelay }}
+          periodSeconds: {{ .Values.redis.readiness.period }}
+        {{ end }}
+        {{ if .Values.redis.liveness.use }}
+        livenessProbe:
+          tcpSocket:
+            port: {{ .Values.redis.port }}
+          initialDelaySeconds: {{ .Values.redis.liveness.initialDelay }}
+          periodSeconds: {{ .Values.redis.liveness.period }}
+        {{ end }}
+{{end}}

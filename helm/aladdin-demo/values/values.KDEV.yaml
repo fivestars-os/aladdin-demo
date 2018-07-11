@@ -1,0 +1,20 @@
+# Values here will overwrite values.yaml defaults. These values are used when deploying to KDEV cluster
+
+# Usually you will want to create your own instance of elasticsearch on dev, but if you are backing
+# it with a statefulset, you will need to manually provision the peristent volume beforehand and
+# make sure the statefulset pod has the correct affinity. See elasticsearch_statefulset.md for more information.
+elasticsearch:
+  create: false
+
+redis:
+  create: true
+
+# Configurations for setting up apm tracing
+apm:
+  enable: false
+  datadog_env: dev
+affinity: critical-datadog-apm
+
+app:
+  uwsgi:
+    processes: 8

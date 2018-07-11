@@ -1,0 +1,19 @@
+{{if .Values.redis.create }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ .Chart.Name }}-redis
+  labels:
+    project: {{ .Chart.Name }}
+    name: {{ .Chart.Name }}-redis
+    app: {{ .Chart.Name }}-redis
+    githash: {{ .Values.deploy.imageTag }}
+spec:
+  # No service type is specified here because the default is ClusterIP
+  # This is cluster-internal, so it is only reachable from within the cluster, a private service
+  ports:
+  - port: {{ .Values.redis.port }}
+    targetPort: {{ .Values.redis.containerPort }}
+  selector:
+    name: {{ .Chart.Name }}-redis
+{{end}}

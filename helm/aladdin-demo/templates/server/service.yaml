@@ -1,0 +1,36 @@
+apiVersion: v1
+kind: Service
+metadata: 
+  name: {{ .Chart.Name }}-server
+  labels:
+    project: {{ .Chart.Name }}
+    name: {{ .Chart.Name }}-server
+    app: {{ .Chart.Name }}-server
+    githash: {{ .Values.deploy.imageTag }}
+  annotations:
+    service.beta.kubernetes.io/aws-load-balancer-ssl-cert: {{.Values.service.certificateArn | quote}}
+    service.beta.kubernetes.io/aws-load-balancer-backend-protocol: http
+    service.beta.kubernetes.io/aws-load-balancer-ssl-ports: "443"
+spec:
+  # Aladdin will fill this in as NodePort which will expose itself to things outside of the cluster
+  # This is to highlight difference between public and private service types, and to only use
+  # public service types when it truly should be public
+  type: {{ .Values.service.publicServiceType | quote }}
+  ports:
+  - name: http
+    port: {{ .Values.app.nginx.httpPort }}
+{{ if .Values.app.nginx.use }}
+    targetPort: {{ .Values.app.nginx.port }}
+{{ else }}
+    targetPort: {{ .Values.app.uwsgi.port }}
+{{ end }}
+  - name: https
+    port: {{ .Values.app.nginx.httpsPort }}
+{{ if .Values.app.nginx.use }}
+    targetPort: {{ .Values.app.nginx.port }}
+{{ else }}
+    targetPort: {{ .Values.app.uwsgi.port }}
+{{ end }}
+  selector:
+    # Get the aladdin-demo-server deployment configuration from sever/deploy.yaml
+    name: {{ .Chart.Name }}-server

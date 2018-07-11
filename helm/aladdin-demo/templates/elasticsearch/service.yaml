@@ -1,0 +1,19 @@
+{{ if .Values.elasticsearch.create }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ .Chart.Name }}-elasticsearch
+  labels:
+    project: {{ .Chart.Name }}
+    name: {{ .Chart.Name }}-elasticsearch
+    app: {{ .Chart.Name }}-elasticsearch
+    githash: {{.Values.deploy.imageTag}}
+spec:
+  # Setting clusterIP to None makes this a Headless Service, which is required for StatefulSet
+  clusterIP: None
+  selector:
+    name: {{ .Chart.Name }}-elasticsearch
+  ports:
+  - name: elasticsearch
+    port: {{ .Values.elasticsearch.port }}
+{{ end }} 

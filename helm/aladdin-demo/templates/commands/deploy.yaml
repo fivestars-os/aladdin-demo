@@ -1,0 +1,46 @@
+apiVersion: apps/v1beta2
+kind: Deployment
+metadata:
+  name: {{ .Chart.Name }}-commands
+  labels:
+    project: {{ .Chart.Name }}
+    name: {{ .Chart.Name }}-commands
+    app: {{ .Chart.Name }}-commands
+    githash: {{ .Values.deploy.imageTag }}
+spec:
+  selector:
+    matchLabels:
+      app: {{ .Chart.Name }}-commands
+  replicas: 1
+  strategy:
+    type: RollingUpdate
+  template:
+    metadata:
+      labels:
+        project: {{ .Chart.Name }}
+        name: {{ .Chart.Name }}-commands
+        app: {{ .Chart.Name }}-commands
+    spec:
+      containers:
+      - image: {{ .Values.deploy.ecr }}{{ .Chart.Name }}-commands:{{ .Values.deploy.imageTag }}
+        imagePullPolicy: {{.Values.deploy.imagePullPolicy}}
+        name: {{ .Chart.Name }}-commands
+        env:
+          - name: PROJECT_NAME
+            value: {{ .Chart.Name }}
+        envFrom:
+        - configMapRef:
+            name: {{ .Chart.Name }}
+        ports:
+        - containerPort: {{ .Values.app.uwsgi.port }}
+          protocol: TCP
+{{ if .Values.deploy.withMount }}
+        volumeMounts:
+        - mountPath: /code/commands
+          name: {{ .Chart.Name }}-commands
+          subPath: app/commands_app/commands
+      volumes:
+      - name: {{ .Chart.Name }}-commands
+        persistentVolumeClaim:
+          claimName: {{ .Chart.Name }}-nfs-volume-claim
+{{ end }}

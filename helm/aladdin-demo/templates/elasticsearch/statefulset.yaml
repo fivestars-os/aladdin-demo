@@ -1,0 +1,102 @@
+{{ if .Values.elasticsearch.create }}
+apiVersion: apps/v1beta1
+kind: StatefulSet
+metadata:
+  name: {{ .Chart.Name }}-elasticsearch
+  labels:
+    project: {{ .Chart.Name }}
+    name: {{ .Chart.Name }}-elasticsearch
+    app: {{ .Chart.Name }}-elasticsearch
+    githash: {{.Values.deploy.imageTag}}
+spec:
+  selector:
+    matchLabels:
+      name: {{ .Chart.Name }}-elasticsearch
+  # The name of the service that governs this StatefulSet, must exist before the StatefulSet    
+  serviceName: {{ .Chart.Name }}-elasticsearch
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        name: {{ .Chart.Name }}-elasticsearch # has to match .spec.selector.matchLabels
+        project: {{ .Chart.Name }}
+        app: {{ .Chart.Name }}-elasticsearch
+    spec:
+      # Not set in local but very important for nonlocal development! If we run the Kubernetes cluster
+      # on top of AWS, Kubernetes does not have information about which AWS zone each component is, 
+      # For a StatefulSet, if we use EBS as our persistent volume, the StatefulSet and the EBS volume
+      # must be in the same zone. It may be best to not rely on the dynamic allocation of volume but
+      # rather manually create EBS volumes so we know exactly where the pod should go.
+      {{ if .Values.affinity }}
+        nodeSelector:
+          affinity: {{ .Values.affinity }}
+      {{ end }}
+      initContainers:
+      # Increase the vm.max_map_count to satisfy the bootstrap checks of elasticsearch
+      - name: init-sysctl
+        image: busybox
+        imagePullPolicy: IfNotPresent
+        command: ["sysctl", "-w", "vm.max_map_count=262144"]
+        securityContext:
+          privileged: true
+      # Change the owner of the mounted persistent volume let elasticsearch access it for data and logs
+      # Ideally this can be done with spec.securityContext, which is commented out below, but it 
+      # does not appear to work in minikube
+      - name: init-volume-chown
+        image: busybox
+        imagePullPolicy: IfNotPresent
+        command: ["sh", "-c", "chown -R {{ .Values.elasticsearch.id }}:{{ .Values.elasticsearch.id }} /usr/share/elasticsearch/stateful"]
+        volumeMounts:
+        - name: storage
+          mountPath: /usr/share/elasticsearch/stateful
+      containers:
+      - name: {{ .Chart.Name }}-elasticsearch
+        image: docker.elastic.co/elasticsearch/elasticsearch:5.6.3
+        ports:
+        - containerPort: {{ .Values.elasticsearch.containerPort }}
+        volumeMounts:
+        - name: {{ .Chart.Name }}-elasticsearch
+          # Volume mounts will override the mountPath, which in this case has a lot of other useful
+          # things in it, we only want to mount elasticsearch.yml 
+          mountPath: /usr/share/elasticsearch/config/elasticsearch.yml
+          # Configmaps are lists of key-value pairs, and we only need one of the keys, so we
+          # specify that with a subpath 
+          subPath: elasticsearch.yml
+        - name: storage
+          mountPath: /usr/share/elasticsearch/stateful
+        {{ if .Values.elasticsearch.readiness.use }}
+        readinessProbe:
+          tcpSocket:
+            port: {{ .Values.elasticsearch.port }}
+          initialDelaySeconds: {{ .Values.elasticsearch.readiness.initialDelay }}
+          periodSeconds: {{ .Values.elasticsearch.readiness.period }}
+        {{ end }}
+        {{ if .Values.elasticsearch.liveness.use }}
+        livenessProbe:
+          tcpSocket:
+            port: {{ .Values.elasticsearch.port }}
+          initialDelaySeconds: {{ .Values.elasticsearch.liveness.initialDelay }}
+          periodSeconds: {{ .Values.elasticsearch.liveness.period }}
+        {{ end }}
+      volumes:
+        - name: {{ .Chart.Name }}-elasticsearch
+          configMap:
+            name: {{ .Chart.Name }}-elasticsearch
+      # We need to modify the security context for the pod so that the volumes mounted under the elasticsearch
+      # user instead of the default root user, allowing elasticsearch to access the persistent volume
+      # This does not currently work with minikube, hence the init-volume-chown initContainer above
+      # securityContext: 
+      #   fsGroup: {{ .Values.elasticsearch.id }}
+  # Define the persistent volume claim, which will dynamically allocate a peristent volume that
+  # satisfies this template
+  volumeClaimTemplates:
+  - metadata:
+      name: storage
+    spec:
+      # Allow one node to read and write at a time
+      accessModes: [ "ReadWriteOnce" ]
+      storageClassName: standard
+      resources:
+        requests:
+          storage: {{ .Values.elasticsearch.storage }}
+{{ end }}

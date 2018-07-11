@@ -1,0 +1,59 @@
+# Values here will overwrite values.yaml defaults. These values are used when deploying locally to minikube
+# Application configuration
+app:
+  uwsgi:
+    port: 8000
+    processes: 2
+  nginx:
+    use: true
+    port: 80
+    httpPort: 80
+    httpsPort: 443
+  liveness:
+    use: true
+    initialDelay: 15
+    period: 120
+  readiness:
+    use: true
+    initialDelay: 5
+    period: 60
+
+# Configurations for setting up apm tracing
+apm:
+  enable: false
+  datadog_env: local
+
+deploy:
+  # number of seconds for the containers to perform a graceful shutdown, after which it is voilently terminated
+  terminationGracePeriod: 50
+  replicas: 1
+
+redis:
+  create: true
+  port: 6379
+  containerPort: 6379
+  liveness:
+    use: true
+    initialDelay: 10
+    period: 15
+  readiness:
+    use: true
+    initialDelay: 5
+    period: 10
+
+elasticsearch:
+  create: true
+  populate: true
+  # 1000 is the uid of the first non-root user created, in our case that is the elasticsearch user
+  id: 1000
+  port: 9200
+  containerPort: 9200
+  storage: 1Gi
+  liveness:
+    use: true
+    initialDelay: 10
+    period: 60
+  readiness:
+    use: true
+    initialDelay: 10
+    period: 30

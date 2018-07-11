@@ -1,0 +1,25 @@
+{{ define "elasticsearch_check" -}}
+{{ if .Values.elasticsearch.create }}
+- name: {{ .Chart.Name }}-elasticsearch-check
+  image: byrnedo/alpine-curl
+  command:
+  - 'sh'
+  - '-c'
+  - 'until curl {{ .Chart.Name }}-elasticsearch:{{ .Values.elasticsearch.port }}; do echo waiting for elasticsearch pod; sleep 2; done;'
+{{ end }}
+{{ end }}
+
+---
+
+{{ define "elasticsearch_populate" -}}
+{{ if .Values.elasticsearch.create }}
+- name: {{ .Chart.Name }}-elasticsearch-populate
+  image: {{ .Values.deploy.ecr }}{{ .Chart.Name }}:{{ .Values.deploy.imageTag }}
+  command:
+  - 'python3'
+  - 'elasticsearch_util/elasticsearch_populate.py'
+  envFrom:
+    - configMapRef:
+        name: {{ .Chart.Name }}
+{{ end }}
+{{ end }}

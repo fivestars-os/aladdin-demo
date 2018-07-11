@@ -1,0 +1,7 @@
+# #!/usr/bin/env bash
+
+echo "Making sure flake8 is installed..."
+pip install flake8 &> /dev/null
+
+# ignore column width error E501
+flake8 --ignore E501 .

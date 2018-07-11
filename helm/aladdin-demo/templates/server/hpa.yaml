@@ -1,0 +1,26 @@
+apiVersion: autoscaling/v2beta1
+# This is an autoscaler for aladdin-demo
+kind: HorizontalPodAutoscaler
+metadata:
+  name: {{ .Chart.Name }}-hpa
+  labels:
+    project: {{ .Chart.Name }}
+    name: {{ .Chart.Name }}-hpa
+    app: {{ .Chart.Name }}-hpa
+    githash: {{ .Values.deploy.imageTag }}
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1beta1
+    kind: Deployment
+    name: {{ .Chart.Name }}-server
+  # If the cpu utilization percentage of a pod exceeds 50%, the autoscaler will spin
+  # up new pods until each pod has a below 50% cpu utilization
+  # By default, autoscaler will check on the pods every 30 seconds. This can be changed through
+  # the controller manager's --horizontal-pod-autoscaler-sync-period flag.
+  minReplicas: 1
+  maxReplicas: 10
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        targetAverageUtilization: 50

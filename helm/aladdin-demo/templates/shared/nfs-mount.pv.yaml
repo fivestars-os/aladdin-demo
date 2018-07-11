@@ -1,0 +1,16 @@
+{{ if .Values.deploy.withMount }}
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: {{ .Chart.Name }}-nfs-volume
+spec:
+  capacity:
+    storage: 1Gi
+  accessModes:
+  - ReadWriteMany
+  persistentVolumeReclaimPolicy: Retain
+  storageClassName: standard
+  nfs:
+    server: 192.168.99.1
+    path: {{ .Values.deploy.mountPath }}
+{{ end }}

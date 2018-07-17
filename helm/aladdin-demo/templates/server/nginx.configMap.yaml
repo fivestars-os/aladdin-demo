@@ -7,7 +7,7 @@ metadata:
     project: {{ .Chart.Name }}
     app: {{ .Chart.Name }}-nginx
     name: {{ .Chart.Name }}-nginx
-    githash: {{ .Values.deploy.imageTag }}
+    githash: {{ .Values.deploy.imageTag | quote }}
 data:
   # Make the key the desired name for the file
   # When mounted, this will create a nginx.conf file with the contents in nginx-config template

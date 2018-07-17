@@ -7,7 +7,7 @@ metadata:
     project: {{ .Chart.Name }}
     name: {{ .Chart.Name }}-hpa
     app: {{ .Chart.Name }}-hpa
-    githash: {{ .Values.deploy.imageTag }}
+    githash: {{ .Values.deploy.imageTag | quote }}
 spec:
   scaleTargetRef:
     apiVersion: apps/v1beta1

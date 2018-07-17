@@ -7,7 +7,7 @@ metadata:
     project: {{ .Chart.Name }}
     app: {{ .Chart.Name }}-elasticsearch
     name: {{ .Chart.Name }}-elasticsearch
-    githash: {{ .Values.deploy.imageTag }}
+    githash: {{ .Values.deploy.imageTag | quote }}
 data:
   # When mounted, this will create a elasticsearch.yml file with the contents in elasticsearch-config template
   elasticsearch.yml: {{ include "elasticsearch-config" . | quote }}

@@ -6,7 +6,7 @@ metadata:
     project: {{ .Chart.Name }}
     name: {{ .Chart.Name }}-server
     app: {{ .Chart.Name }}-server
-    githash: {{ .Values.deploy.imageTag }}
+    githash: {{ .Values.deploy.imageTag | quote }}
   annotations:
     service.beta.kubernetes.io/aws-load-balancer-ssl-cert: {{.Values.service.certificateArn | quote}}
     service.beta.kubernetes.io/aws-load-balancer-backend-protocol: http

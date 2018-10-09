@@ -6,7 +6,7 @@ metadata:
     project: {{ .Chart.Name }}
     app: {{ .Chart.Name }}
     name: {{ .Chart.Name }}
-    githash: {{ .Values.deploy.imageTag }}
+    githash: {{ .Values.deploy.imageTag | quote }}
 # Create key - value entries in the data map that other files can look up
 # Load them into the environment by using configMapRef in the deploy.yaml file
 data:

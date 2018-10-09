@@ -7,7 +7,7 @@ metadata:
     project: {{ .Chart.Name }}
     name: {{ .Chart.Name }}-redis
     app: {{ .Chart.Name }}-redis
-    githash: {{ .Values.deploy.imageTag }}
+    githash: {{ .Values.deploy.imageTag | quote }}
 spec:
   selector:
     matchLabels:

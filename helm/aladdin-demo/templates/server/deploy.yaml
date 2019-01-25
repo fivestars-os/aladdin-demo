@@ -80,7 +80,7 @@ spec:
             path: /ping
             port: {{ .Values.app.uwsgi.port }}
           initialDelaySeconds: {{ .Values.app.liveness.initialDelay }}
-          periodSeconds: {{ .Values.app.readiness.period }}
+          periodSeconds: {{ .Values.app.liveness.period }}
         {{ end }} # /app.liveness.use
 ############# nginx server container ########
 ## This is a container for an nginx server

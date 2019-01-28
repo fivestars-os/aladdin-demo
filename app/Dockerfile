@@ -1,4 +1,4 @@
-FROM alpine:3.6
+FROM alpine:3.8
 
 # install python and pip with apk package manager
 RUN apk -Uuv add python py-pip

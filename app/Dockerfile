@@ -14,7 +14,8 @@ RUN apk add --no-cache \
 # copies requirements.txt to the docker container
 ADD requirements.txt requirements.txt
 
-# Install requirements
+# install requirements
+RUN pip3 install --upgrade pip
 RUN pip3 install --no-cache-dir -r requirements.txt
 
 # clean up environment by deleting extra packages
@@ -29,12 +30,15 @@ WORKDIR /home
 # copy over the directory into docker container with given path
 COPY . /home
 
-# Create unprivileged user account
+# create unprivileged user account
 RUN addgroup aladdin-user && \
     adduser -SD -G aladdin-user aladdin-user
 
-# Switch to the unpriveleged user account
+# switch to the unpriveleged user account
 USER aladdin-user
+
+# display how old the python libraries are
+RUN pip3 list --no-cache-dir --outdated
 
 # run the application with uwsgi once the container has been created
 ENTRYPOINT ["/bin/sh", "entrypoint.sh"]

@@ -34,7 +34,7 @@ COPY . /home
 RUN addgroup aladdin-user && \
     adduser -SD -G aladdin-user aladdin-user
 
-# switch to the unpriveleged user account
+# switch to the unprivileged user account
 USER aladdin-user
 
 # display how old the python libraries are

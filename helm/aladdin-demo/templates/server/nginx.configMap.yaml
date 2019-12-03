@@ -9,6 +9,67 @@ metadata:
     name: {{ .Chart.Name }}-nginx
     githash: {{ .Values.deploy.imageTag | quote }}
 data:
-  # Make the key the desired name for the file
-  # When mounted, this will create a nginx.conf file with the contents in nginx-config template
-  nginx.conf: {{ include "nginx-config" . | quote }}
+  nginx.conf: |-
+    # Specify some event configs
+    events {
+        worker_connections 4096;
+    }
+
+    # Create a server that listens on the nginx port
+    http {
+
+    	# define patterns to exclude from access logs (by default, everything will be logged)
+    	map $uri $loggable {
+    	  ~^/ping.*$ 0;
+    	  default 1;
+    	}
+
+    	log_format loggly '{'
+    	    '"nginx": {'
+    	        '"request": "$request", '
+    	        '"remoteAddr": "$remote_addr", '
+    	        '"status": "$status", '
+    	        '"size": $body_bytes_sent, '
+    	        '"referer": "$http_referer", '
+    	        '"userAgent": "$http_user_agent", '
+    	        '"timestamp": "$time_local", '
+    	        '"requestTime": $request_time, '
+    	        '"host": "$http_host", '
+    	        '"xRealIp": "$http_x_real_ip", '
+    	        '"xForwardedFor": "$http_x_forwarded_for"'
+    	    '}'
+    	'}';
+
+        upstream app {
+            server 127.0.0.1:{{ .Values.app.uwsgi.port }};
+        }
+
+        server {
+            listen {{ .Values.app.nginx.port }};
+
+            access_log /var/log/nginx/access.log loggly if=$loggable;
+            error_log /var/log/nginx/error.log error;
+
+            # see https://uwsgi-docs.readthedocs.io/en/latest/Nginx.html
+            include uwsgi_params;
+
+            # match incoming request uri with "/app" and forward them to the uwsgi app
+            location /app {
+                uwsgi_pass app;
+            }
+
+            # for liveness
+            location /ping {
+                return 200 'gangnam style!';
+            }
+
+            # otherwise, nginx tries to serve static content
+            # the only file should exist is index.html, which is written by the initContainer
+            # GET requests with "/" or "/index.html" will return a short message
+            location / {
+                root /usr/share/nginx/html;
+                index index.html;
+            }
+        }
+    }
+

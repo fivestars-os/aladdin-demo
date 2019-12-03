@@ -11,7 +11,7 @@ spec:
   selector:
     matchLabels:
       app: {{ .Chart.Name }}-server
-  replicas: {{ .Values.deploy.replicas }}
+  replicas: {{ .Values.server.replicas }}
   strategy:
     type: RollingUpdate
   template:
@@ -22,18 +22,16 @@ spec:
         app: {{ .Chart.Name }}-server
     spec:
       # Number of seconds for the containers to perform a graceful shutdown,
-      # after which it is voilently terminated. This defaults to 30s, most apps may not need to change it
-      terminationGracePeriodSeconds: {{ .Values.deploy.terminationGracePeriod }}
+      # after which it is violently terminated. This defaults to 30s, most apps may not need to change it
+      terminationGracePeriodSeconds: {{ .Values.server.terminationGracePeriod }}
       # Only schedule pods on nodes with the affinity: critical-datadog-apm label
       {{ if .Values.affinity }}
       nodeSelector:
         affinity: {{ .Values.affinity }}
       {{ end }}
       containers:
-############# aladdin-demo-uwsgi app container ####
-## This is a container that runs the falcon aladdin-demo app with uwsgi server
-#############################################
-      - name: {{ .Chart.Name }}-uwsgi
+      # This is a container that runs the falcon aladdin-demo app with uwsgi server
+      - name: uwsgi
         # Docker image for this container
         image: {{ .Values.deploy.ecr }}{{ .Chart.Name }}:{{ .Values.deploy.imageTag }}
         workingDir: /home
@@ -47,71 +45,77 @@ spec:
           - mountPath: /config/uwsgi.yaml
             name: {{ .Chart.Name }}-uwsgi
             subPath: uwsgi.yaml
-{{ if .Values.deploy.withMount }}
-          - mountPath: /home
+          {{ if .Values.deploy.withMount }}
+          - mountPath: /home/app
             name: {{ .Chart.Name }}-server
-            subPath: app
-{{ end }} # /withMount
+          {{ end }}
         envFrom:
           # Load the data from configMap into the runtime environment
           # This allows us to use os.environ["KEY"] to look up variables
           - configMapRef:
               name: {{ .Chart.Name }}
+        {{ if .Values.resourceLimits.enable }}
         resources:
           requests:
-            cpu: 100m
-            memory: 100Mi
+            cpu: {{ .Values.resourceLimits.server.uwsgi.cpu.requests }}
+            memory: {{ .Values.resourceLimits.server.uwsgi.memory.requests }}
           limits:
-            cpu: 200m
-            memory: 200Mi
-        {{ if .Values.app.readiness.use }}
-        # Readiness probe stops traffic to this pod if it is not ready, wait until it is ready
-        readinessProbe:
-          httpGet:
-            path: /ping
-            port: {{ .Values.app.uwsgi.port }}
-          initialDelaySeconds: {{ .Values.app.readiness.initialDelay }}
-          periodSeconds: {{ .Values.app.readiness.period }}
-        {{ end }} # /app.readiness.use
-        # Liveness probe terminates and restarts the pod if unhealthy
-        {{ if .Values.app.liveness.use }}
-        livenessProbe: 
-          httpGet:
-            path: /ping
-            port: {{ .Values.app.uwsgi.port }}
-          initialDelaySeconds: {{ .Values.app.liveness.initialDelay }}
-          periodSeconds: {{ .Values.app.liveness.period }}
-        {{ end }} # /app.liveness.use
-############# nginx server container ########
-## This is a container for an nginx server
-#############################################
-{{ if .Values.app.nginx.use }}
-      # nginx container, only gets created if the app.nginx.use field is true in values.yaml
-      - name: {{ .Chart.Name }}-nginx
-        image: nginx:1.12-alpine
-        ports: 
+            cpu: {{ .Values.resourceLimits.server.uwsgi.cpu.limits }}
+            memory: {{ .Values.resourceLimits.server.uwsgi.memory.limits }}
+        {{ end }} # resourceLimits.enable
+      # This is the container for an nginx server
+      {{ if .Values.app.nginx.use }}
+      - name: nginx
+        image: nginx:1.17-alpine
+        imagePullPolicy: {{ .Values.deploy.imagePullPolicy }}
+        ports:
           - containerPort: {{ .Values.app.nginx.port }}
             protocol: TCP
         volumeMounts:
-          - mountPath: /etc/nginx/
+          - mountPath: /etc/nginx/nginx.conf
             name: {{ .Chart.Name }}-nginx
+            subPath: nginx.conf
           # mount html that should contain an index.html file written by the init container
           - mountPath: /usr/share/nginx/html
             name: workdir
         envFrom:
           - configMapRef:
               name: {{ .Chart.Name }}
+        {{ if .Values.resourceLimits.enable }}
         resources:
           requests:
-            cpu: 100m
-{{ end }}
-############# init container ################
-## initContainers must run and successfully exit before the pod can start. If it fails, K8s
-## will restart the initContainers until it is successful. 
-## You can have multiple initContainers, they will execute one by one in order
-#############################################
+            cpu: {{ .Values.resourceLimits.server.nginx.cpu.requests }}
+            memory: {{ .Values.resourceLimits.server.nginx.memory.requests }}
+          limits:
+            cpu: {{ .Values.resourceLimits.server.nginx.cpu.limits }}
+            memory: {{ .Values.resourceLimits.server.nginx.memory.limits }}
+        {{ end }} # resourceLimits.enable
+        # Readiness probe stops traffic to this pod if it is not ready, wait until it is ready
+        {{ if .Values.app.readiness.use }}
+        readinessProbe:
+          httpGet:
+            path: /app/ping  # for readiness we want to check uwsgi via nginx
+            port: {{ .Values.app.nginx.port }}
+          initialDelaySeconds: {{ .Values.app.readiness.initialDelay }}
+          periodSeconds: {{ .Values.app.readiness.period }}
+        {{ end }} # app.readiness.use
+        # Liveness probe terminates and restarts the pod if unhealthy
+        {{ if .Values.app.liveness.use }}
+        livenessProbe:
+          httpGet:
+            path: /ping
+            port: {{ .Values.app.nginx.port }}
+          initialDelaySeconds: {{ .Values.app.liveness.initialDelay }}
+          periodSeconds: {{ .Values.app.liveness.period }}
+        {{ end }} # app.liveness.use
+      {{ end }}
+      #############################################
+      ## initContainers must run and successfully exit before the pod can start. If it fails, K8s
+      ## will restart the initContainers until it is successful.
+      ## You can have multiple initContainers, they will execute one by one in order
+      #############################################
       initContainers:
-{{ if .Values.app.nginx.use }}
+      {{ if .Values.app.nginx.use }}
       # writes a short message into index.html into a mounted volume file shared by nginx
       # this will be the default page that shows up when sending get requests to nginx that
       # are not forwarded to uWSGI
@@ -121,21 +125,16 @@ spec:
         volumeMounts:
         - name: workdir
           mountPath: "/work-dir"
-{{ end }} # /nginx.use
-{{ if .Values.redis.create }}
-        # initContainer that checks that redis contianer is up and running
-{{ include "redis_check" . | indent 6 }}
-        # initContainer that populates redis, only runs if the previous one terminates successfully
-{{ include "redis_populate" . | indent 6 }}
-{{ end }} # /redis.create
-        # initContainers that check that elasticsearch container is up and running, populates it if it is
-{{ if .Values.elasticsearch.create }}
-{{ include "elasticsearch_check" . | indent 6 }}
-{{ if .Values.elasticsearch.populate }}
-{{ include "elasticsearch_populate" . | indent 6}}
-{{ end }} # /elasticsearch.populate
-{{ end }} # /elasticsearch.create
-############# end of containers #############
+      {{ end }} # nginx.use
+      # initContainer that checks that redis container is up and running
+      {{ include "redis_check" . | indent 6 }}
+      # initContainer that populates redis, only runs if the previous one terminates successfully
+      {{ include "redis_populate" . | indent 6 }}
+      # initContainers that check that elasticsearch container is up and running, populates it if it is
+      {{ include "elasticsearch_check" . | indent 6 }}
+      {{ include "elasticsearch_populate" . | indent 6}}
+      ############# end of containers #############
+
       # Specify volumes that will be mounted in the containers
       volumes:
         - name: {{ .Chart.Name }}-nginx
@@ -144,12 +143,12 @@ spec:
         - name: {{ .Chart.Name }}-uwsgi
           configMap:
             name: {{ .Chart.Name }}-uwsgi
-{{ if .Values.app.nginx.use }}
+        {{ if .Values.app.nginx.use }}
         - name: workdir 
           emptyDir: {}
-{{ end }}
-{{ if .Values.deploy.withMount }}
+        {{ end }}
+        {{ if .Values.deploy.withMount }}
         - name: {{ .Chart.Name }}-server
-          persistentVolumeClaim:
-            claimName: {{ .Chart.Name }}-nfs-volume-claim
-{{ end }} # /withMount
+          hostPath:
+            path: {{ .Values.deploy.mountPath }}
+        {{ end }}

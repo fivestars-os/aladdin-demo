@@ -1,6 +1,6 @@
 {{ define "elasticsearch_check" -}}
 {{ if .Values.elasticsearch.create }}
-- name: {{ .Chart.Name }}-elasticsearch-check
+- name: es-check
   image: byrnedo/alpine-curl
   command:
   - 'sh'
@@ -12,8 +12,8 @@
 ---
 
 {{ define "elasticsearch_populate" -}}
-{{ if .Values.elasticsearch.create }}
-- name: {{ .Chart.Name }}-elasticsearch-populate
+{{ if .Values.elasticsearch.populate }}
+- name: es-populate
   image: {{ .Values.deploy.ecr }}{{ .Chart.Name }}:{{ .Values.deploy.imageTag }}
   command:
   - 'python3'

@@ -9,6 +9,29 @@ metadata:
     name: {{ .Chart.Name }}-uwsgi
     githash: {{ .Values.deploy.imageTag | quote }}
 data:
-  # Make the key the desired name for the file
-  # When mounted, this will create a uwsgi.yaml file with the contents in uwsgi-config template
-  uwsgi.yaml: {{ include "uwsgi-config" . | quote }}
+  uwsgi.yaml: |-
+    uwsgi:
+      uid: aladdin-user
+      gid: aladdin-user
+
+      master: true
+      processes: {{ .Values.app.uwsgi.processes }}
+
+      buffer-size: {{ .Values.app.uwsgi.bufferSize }}
+      socket: :{{ .Values.app.uwsgi.port }}
+      py-autoreload: {{ .Values.app.uwsgi.autoreload }}
+
+      wsgi-file: run.py
+      callable: app
+
+      enable-threads: true
+      die-on-term: true
+
+      harakiri: {{ .Values.app.uwsgi.harakiri }}
+      harakiri-verbose: true
+
+      disable-logging: {{ .Values.app.uwsgi.disableLogging }}
+
+      logformat: %(ftime) %(status) %(method) %(uri)
+      logformat-strftime: true
+      log-date: %%H:%%M:%%S

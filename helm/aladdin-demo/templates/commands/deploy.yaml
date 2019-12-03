@@ -11,7 +11,7 @@ spec:
   selector:
     matchLabels:
       app: {{ .Chart.Name }}-commands
-  replicas: 1
+  replicas: {{ .Values.commands.replicas }}
   strategy:
     type: RollingUpdate
   template:
@@ -23,8 +23,8 @@ spec:
     spec:
       containers:
       - image: {{ .Values.deploy.ecr }}{{ .Chart.Name }}-commands:{{ .Values.deploy.imageTag }}
-        imagePullPolicy: {{.Values.deploy.imagePullPolicy}}
-        name: {{ .Chart.Name }}-commands
+        imagePullPolicy: {{ .Values.deploy.imagePullPolicy }}
+        name: commands
         env:
           - name: PROJECT_NAME
             value: {{ .Chart.Name }}
@@ -34,13 +34,15 @@ spec:
         ports:
         - containerPort: {{ .Values.app.uwsgi.port }}
           protocol: TCP
-{{ if .Values.deploy.withMount }}
+        {{ if .Values.deploy.withMount }}
         volumeMounts:
         - mountPath: /code/commands
           name: {{ .Chart.Name }}-commands
           subPath: app/commands_app/commands
+        {{ end }}
+      {{ if .Values.deploy.withMount }}
       volumes:
       - name: {{ .Chart.Name }}-commands
-        persistentVolumeClaim:
-          claimName: {{ .Chart.Name }}-nfs-volume-claim
-{{ end }}
+        hostPath:
+          path: {{ .Values.deploy.mountPath }}
+      {{ end }}

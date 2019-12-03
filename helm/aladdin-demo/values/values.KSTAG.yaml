@@ -1,17 +1,4 @@
 # Values here will overwrite values.yaml defaults. These values are used when deploying to KSTAG cluster
 
-elasticsearch:
-  create: false
-
-redis:
-  create: false
-
-# Configurations for setting up apm tracing
 apm:
-  enable: false
   datadog_env: staging
-affinity: critical-datadog-apm
-
-app:
-  uwsgi:
-    processes: 16

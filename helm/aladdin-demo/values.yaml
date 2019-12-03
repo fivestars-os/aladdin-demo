@@ -4,7 +4,11 @@
 app:
   uwsgi:
     port: 8000
-    # processes: 16
+    processes: 16
+    bufferSize: 8192
+    disableLogging: true
+    autoreload: 0
+    harakiri: 30
   nginx:
     use: true
     port: 80
@@ -29,27 +33,50 @@ apm:
   datadog_trace_agent_hostname: datadog-agent.kube-system
   datadog_env:
 
-deploy:
-  # number of seconds for the containers to perform a graceful shutdown, after which it is voilently terminated
+affinity: critical-datadog-apm
+
+server:
+  # number of seconds for the container to perform a graceful shutdown, after which it is violently terminated
   terminationGracePeriod: 50
   replicas: 1
 
+commands:
+  replicas: 1
+
+resourceLimits:
+  enable: true
+  server:
+    uwsgi:
+      cpu:
+        requests: 100m
+        limits: 200m
+      memory:
+        requests: 100Mi
+        limits: 200Mi
+    nginx:
+      cpu:
+        requests: 100m
+        limits: 200m
+      memory:
+        requests: 5Mi
+        limits: 30Mi
+
 redis:
-  # create: true
+  create: false
   port: 6379
   containerPort: 6379
   liveness:
-    # use: true
+    use: true
     initialDelay: 10
     period: 15
   readiness:
-    use: #true
+    use: true
     initialDelay: 5
     period: 10
 
 elasticsearch:
-  # create: true
-  # populate: true
+  create: false
+  populate: false
   # The elasticsearch config file is chown'd to the user of this id
   # 1000 is the uid of the first non-root user created, in our case that is the elasticsearch user
   # id: 1000
@@ -57,10 +84,10 @@ elasticsearch:
   # containerPort: 9200
   # storage: 1Gi
   liveness:
-    # use: true
+    use: true
     initialDelay: 10
     period: 60
   readiness:
-    # use: true
+    use: true
     initialDelay: 10
     period: 30

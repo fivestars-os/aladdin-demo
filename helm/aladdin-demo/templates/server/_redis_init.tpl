@@ -1,6 +1,6 @@
 {{ define "redis_check" -}}
 {{ if .Values.redis.create }}
-- name: {{ .Chart.Name }}-redis-check
+- name: redis-check
   image: busybox
   command:
   - 'sh'
@@ -13,7 +13,7 @@
 
 {{ define "redis_populate" -}}
 {{ if .Values.redis.create }}
-- name: {{ .Chart.Name }}-redis-populate
+- name: redis-populate
   image: {{ .Values.deploy.ecr }}{{ .Chart.Name }}:{{ .Values.deploy.imageTag }}
   command:
   - 'python3'

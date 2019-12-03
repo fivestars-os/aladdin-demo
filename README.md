@@ -50,9 +50,9 @@ The `docker_images` field should contain a list of the names of the images your 
 ### Docker
 Your project will need to be running in Docker containers, which only require a Dockerfile and a build script. It may be beneficial to get a basic understanding of Docker from the [Official Get Started Documentation](https://docs.docker.com/get-started/). 
 
-This is the [Dockerfile](app/Dockerfile). It starts from a base image of `alpine:3.6` and installs everything in `requirements.txt`, copies over the necessary code, and adds an entrypoint, which is the command that runs when the container starts up. The comments in the code should explain each command.
+This is the [Dockerfile](app/Dockerfile). It starts from a base image of `alpine:3.8` and installs everything in `requirements.txt`, copies over the necessary code, and adds an entrypoint, which is the command that runs when the container starts up. The comments in the code should explain each command.
 ```dockerfile
-FROM alpine:3.6
+FROM alpine:3.8
 
 # install python and pip with apk package manager
 RUN apk -Uuv add python py-pip
@@ -87,13 +87,13 @@ COPY . /home
 RUN addgroup aladdin-user && \
     adduser -SD -G aladdin-user aladdin-user
 
-# Switch to the unpriveleged user account
+# Switch to the unprivileged user account
 USER aladdin-user
 
 # run the application with uwsgi once the container has been created
 ENTRYPOINT ["/bin/sh", "entrypoint.sh"]
 ```
-We create and use an unpriviledged user account called aladdin-user, as it is best practice to not run uwsgi as root.
+We create and use an unprivileged user account called aladdin-user, as it is best practice to not run uwsgi as root.
 
 The [requirements.txt](app/requirements.txt) simply specify certain versions of libraries that are required for the app to run. This is what we have in our requirements file.
 
@@ -141,21 +141,17 @@ Also in the root of the Helm directory is a [values.yaml](helm/aladdin-demo/valu
 app:
   uwsgi:
     port: 8000
+    processes: 16
+    bufferSize: 8192
+    disableLogging: true
+    autoreload: 0
+    harakiri: 30
   nginx:
     use: true
     port: 80
     httpPort: 80
     httpsPort: 443
-
-deploy:
-  # number of seconds for the containers to perform a graceful shutdown, after which it is voilently terminated
-  terminationGracePeriod: 50
-  replicas: 1
-
-redis:
-  create: true
-  port: 6379
-  containerPort: 6379
+ ...
 ```
 The values in this file can be accessed in other files through {{ .Values.\<value\> }}. For example, {{ .Values.app.uwsgi.port }} will resolve to 8000.
 
@@ -173,12 +169,12 @@ metadata:
     project: {{ .Chart.Name }}
     name: {{ .Chart.Name }}-server
     app: {{ .Chart.Name }}-server
-    githash: {{ .Values.deploy.imageTag }}
+    githash: {{ .Values.deploy.imageTag | quote }}
 spec:
   selector:
     matchLabels:
       app: {{ .Chart.Name }}-server
-  replicas: {{ .Values.deploy.replicas }}
+  replicas: {{ .Values.server.replicas }}
   strategy:
     type: RollingUpdate
   template:
@@ -189,18 +185,16 @@ spec:
         app: {{ .Chart.Name }}-server
     spec:
       # Number of seconds for the containers to perform a graceful shutdown,
-      # after which it is voilently terminated. This defaults to 30s, most apps may not need to change it
-      terminationGracePeriodSeconds: {{ .Values.deploy.terminationGracePeriod }}
+      # after which it is violently terminated. This defaults to 30s, most apps may not need to change it
+      terminationGracePeriodSeconds: {{ .Values.server.terminationGracePeriod }}
       # Only schedule pods on nodes with the affinity: critical-datadog-apm label
       {{ if .Values.affinity }}
       nodeSelector:
         affinity: {{ .Values.affinity }}
       {{ end }}
       containers:
-############# aladdin-demo-uwsgi app container ####
-## This is a container that runs the falcon aladdin-demo app with uwsgi server
-#############################################
-      - name: {{ .Chart.Name }}-uwsgi
+      # This is a container that runs the falcon aladdin-demo app with uwsgi server
+      - name: uwsgi
         # Docker image for this container
         image: {{ .Values.deploy.ecr }}{{ .Chart.Name }}:{{ .Values.deploy.imageTag }}
         workingDir: /home
@@ -214,71 +208,77 @@ spec:
           - mountPath: /config/uwsgi.yaml
             name: {{ .Chart.Name }}-uwsgi
             subPath: uwsgi.yaml
-{{ if .Values.deploy.withMount }}
-          - mountPath: /home
+          {{ if .Values.deploy.withMount }}
+          - mountPath: /home/app
             name: {{ .Chart.Name }}-server
-            subPath: app
-{{ end }} # /withMount
+          {{ end }}
         envFrom:
           # Load the data from configMap into the runtime environment
           # This allows us to use os.environ["KEY"] to look up variables
           - configMapRef:
               name: {{ .Chart.Name }}
+        {{ if .Values.resourceLimits.enable }}
         resources:
           requests:
-            cpu: 100m
-            memory: 100Mi
+            cpu: {{ .Values.resourceLimits.server.uwsgi.cpu.requests }}
+            memory: {{ .Values.resourceLimits.server.uwsgi.memory.requests }}
           limits:
-            cpu: 200m
-            memory: 200Mi
-        {{ if .Values.app.readiness.use }}
-        # Readiness probe stops traffic to this pod if it is not ready, wait until it is ready
-        readinessProbe:
-          httpGet:
-            path: /ping
-            port: {{ .Values.app.uwsgi.port }}
-          initialDelaySeconds: {{ .Values.app.readiness.initialDelay }}
-          periodSeconds: {{ .Values.app.readiness.period }}
-        {{ end }} # /app.readiness.use
-        # Liveness probe terminates and restarts the pod if unhealthy
-        {{ if .Values.app.liveness.use }}
-        livenessProbe: 
-          httpGet:
-            path: /ping
-            port: {{ .Values.app.uwsgi.port }}
-          initialDelaySeconds: {{ .Values.app.liveness.initialDelay }}
-          periodSeconds: {{ .Values.app.readiness.period }}
-        {{ end }} # /app.liveness.use
-############# nginx server container ########
-## This is a container for an nginx server
-#############################################
-{{ if .Values.app.nginx.use }}
-      # nginx container, only gets created if the app.nginx.use field is true in values.yaml
-      - name: {{ .Chart.Name }}-nginx
-        image: nginx:1.12-alpine
-        ports: 
+            cpu: {{ .Values.resourceLimits.server.uwsgi.cpu.limits }}
+            memory: {{ .Values.resourceLimits.server.uwsgi.memory.limits }}
+        {{ end }} # resourceLimits.enable
+      # This is the container for an nginx server
+      {{ if .Values.app.nginx.use }}
+      - name: nginx
+        image: nginx:1.17-alpine
+        imagePullPolicy: {{ .Values.deploy.imagePullPolicy }}
+        ports:
           - containerPort: {{ .Values.app.nginx.port }}
             protocol: TCP
         volumeMounts:
-          - mountPath: /etc/nginx/
+          - mountPath: /etc/nginx/nginx.conf
             name: {{ .Chart.Name }}-nginx
+            subPath: nginx.conf
           # mount html that should contain an index.html file written by the init container
           - mountPath: /usr/share/nginx/html
             name: workdir
         envFrom:
           - configMapRef:
               name: {{ .Chart.Name }}
+        {{ if .Values.resourceLimits.enable }}
         resources:
           requests:
-            cpu: 100m
-{{ end }}
-############# init container ################
-## initContainers must run and successfully exit before the pod can start. If it fails, K8s
-## will restart the initContainers until it is successful. 
-## You can have multiple initContainers, they will execute one by one in order
-#############################################
+            cpu: {{ .Values.resourceLimits.server.nginx.cpu.requests }}
+            memory: {{ .Values.resourceLimits.server.nginx.memory.requests }}
+          limits:
+            cpu: {{ .Values.resourceLimits.server.nginx.cpu.limits }}
+            memory: {{ .Values.resourceLimits.server.nginx.memory.limits }}
+        {{ end }} # resourceLimits.enable
+        # Readiness probe stops traffic to this pod if it is not ready, wait until it is ready
+        {{ if .Values.app.readiness.use }}
+        readinessProbe:
+          httpGet:
+            path: /app/ping  # for readiness we want to check uwsgi via nginx
+            port: {{ .Values.app.nginx.port }}
+          initialDelaySeconds: {{ .Values.app.readiness.initialDelay }}
+          periodSeconds: {{ .Values.app.readiness.period }}
+        {{ end }} # app.readiness.use
+        # Liveness probe terminates and restarts the pod if unhealthy
+        {{ if .Values.app.liveness.use }}
+        livenessProbe:
+          httpGet:
+            path: /ping
+            port: {{ .Values.app.nginx.port }}
+          initialDelaySeconds: {{ .Values.app.liveness.initialDelay }}
+          periodSeconds: {{ .Values.app.liveness.period }}
+        {{ end }} # app.liveness.use
+      {{ end }}
+      #############################################
+      ## initContainers must run and successfully exit before the pod can start. If it fails, K8s
+      ## will restart the initContainers until it is successful.
+      ## You can have multiple initContainers, they will execute one by one in order
+      #############################################
       initContainers:
-{{ if .Values.app.nginx.use }}
+      {{ if .Values.app.nginx.use }}
       # writes a short message into index.html into a mounted volume file shared by nginx
       # this will be the default page that shows up when sending get requests to nginx that
       # are not forwarded to uWSGI
@@ -288,21 +288,16 @@ spec:
         volumeMounts:
         - name: workdir
           mountPath: "/work-dir"
-{{ end }} # /nginx.use
-{{ if .Values.redis.create }}
-        # initContainer that checks that redis contianer is up and running
-{{ include "redis_check" . | indent 6 }}
-        # initContainer that populates redis, only runs if the previous one terminates successfully
-{{ include "redis_populate" . | indent 6 }}
-{{ end }} # /redis.create
-        # initContainers that check that elasticsearch container is up and running, populates it if it is
-{{ if .Values.elasticsearch.create }}
-{{ include "elasticsearch_check" . | indent 6 }}
-{{ if .Values.elasticsearch.populate }}
-{{ include "elasticsearch_populate" . | indent 6}}
-{{ end }} # /elasticsearch.populate
-{{ end }} # /elasticsearch.create
-############# end of containers #############
+      {{ end }} # nginx.use
+      # initContainer that checks that redis container is up and running
+      {{ include "redis_check" . | indent 6 }}
+      # initContainer that populates redis, only runs if the previous one terminates successfully
+      {{ include "redis_populate" . | indent 6 }}
+      # initContainers that check that elasticsearch container is up and running, populates it if it is
+      {{ include "elasticsearch_check" . | indent 6 }}
+      {{ include "elasticsearch_populate" . | indent 6}}
+      ############# end of containers #############
+
       # Specify volumes that will be mounted in the containers
       volumes:
         - name: {{ .Chart.Name }}-nginx
@@ -311,15 +306,15 @@ spec:
         - name: {{ .Chart.Name }}-uwsgi
           configMap:
             name: {{ .Chart.Name }}-uwsgi
-{{ if .Values.app.nginx.use }}
+        {{ if .Values.app.nginx.use }}
         - name: workdir 
           emptyDir: {}
-{{ end }}
-{{ if .Values.deploy.withMount }}
+        {{ end }}
+        {{ if .Values.deploy.withMount }}
         - name: {{ .Chart.Name }}-server
-          persistentVolumeClaim:
-            claimName: {{ .Chart.Name }}-nfs-volume-claim
-{{ end }} # /withMount
+          hostPath:
+            path: {{ .Values.deploy.mountPath }}
+        {{ end }}
 ```
 We specify the image in spec.template.spec.containers. If using a custom built docker image, the name should be the same name as what it is named in the build docker script. The `{{ .Values.deploy.ecr }}` and `{{ .Values.deploy.imageTag }}` are automatically populated by Aladdin. 
 
@@ -335,9 +330,9 @@ metadata:
     project: {{ .Chart.Name }}
     name: {{ .Chart.Name }}-server
     app: {{ .Chart.Name }}-server
-    githash: {{ .Values.deploy.imageTag }}
+    githash: {{ .Values.deploy.imageTag | quote }}
   annotations:
-    service.beta.kubernetes.io/aws-load-balancer-ssl-cert: {{.Values.service.certificateArn | quote}}
+    service.beta.kubernetes.io/aws-load-balancer-ssl-cert: {{ .Values.service.certificateArn | quote }}
     service.beta.kubernetes.io/aws-load-balancer-backend-protocol: http
     service.beta.kubernetes.io/aws-load-balancer-ssl-ports: "443"
 spec:
@@ -348,18 +343,18 @@ spec:
   ports:
   - name: http
     port: {{ .Values.app.nginx.httpPort }}
-{{ if .Values.app.nginx.use }}
+    {{ if .Values.app.nginx.use }}
     targetPort: {{ .Values.app.nginx.port }}
-{{ else }}
+    {{ else }}
     targetPort: {{ .Values.app.uwsgi.port }}
-{{ end }}
+    {{ end }}
   - name: https
     port: {{ .Values.app.nginx.httpsPort }}
-{{ if .Values.app.nginx.use }}
+    {{ if .Values.app.nginx.use }}
     targetPort: {{ .Values.app.nginx.port }}
-{{ else }}
+    {{ else }}
     targetPort: {{ .Values.app.uwsgi.port }}
-{{ end }}
+    {{ end }}
   selector:
     # Get the aladdin-demo-server deployment configuration from sever/deploy.yaml
     name: {{ .Chart.Name }}-server
@@ -420,24 +415,35 @@ if es_conn:
     app.add_route('/app/elasticsearch', ElasticsearchResource())
 app.add_route('/app', BaseResource())
 app.add_route('/app/busy', BusyResource())
-app.add_route('/ping', PingResource())
+app.add_route('/app/ping', PingResource())
 ```
-Our code is in `run.py` and we named our falcon API object `app`, so we specify those things in the uWSGI config file in [\_uwsgi.yaml.tpl](helm/aladdin-demo/templates/server/_uwsgi.yaml.tpl).
+Our code is in `run.py` and we named our falcon API object `app`, so we specify those things in the uWSGI config file in [uwsgi.configMap.yaml](helm/aladdin-demo/templates/server/uwsgi.configMap.yaml).
 ```yaml
-{{/* Config file for uwsgi */}}
+    uwsgi:
+      uid: aladdin-user
+      gid: aladdin-user
 
-# Note: This define name is global, if loading multiple templates with the same name, the last
-# one loaded will be used.
-{{ define "uwsgi-config" -}}
-uwsgi:
-  uid: aladdin-user
-  gid: aladdin-user
-  master: true
-  http: :{{ .Values.app.uwsgi.port }}
-  processes: {{ .Values.app.uwsgi.processes }}
-  wsgi-file: run.py
-  callable: app
-{{ end }}
+      master: true
+      processes: {{ .Values.app.uwsgi.processes }}
+
+      buffer-size: {{ .Values.app.uwsgi.bufferSize }}
+      socket: :{{ .Values.app.uwsgi.port }}
+      py-autoreload: {{ .Values.app.uwsgi.autoreload }}
+
+      wsgi-file: run.py
+      callable: app
+
+      enable-threads: true
+      die-on-term: true
+
+      harakiri: {{ .Values.app.uwsgi.harakiri }}
+      harakiri-verbose: true
+
+      disable-logging: {{ .Values.app.uwsgi.disableLogging }}
+
+      logformat: %(ftime) %(status) %(method) %(uri)
+      logformat-strftime: true
+      log-date: %%H:%%M:%%S
 ```
 With these components in place, we have now created a simple project with Aladdin! For documentation on how we integrated other components, look below at [Useful and Important Documentation](#useful-and-important-documentation)!
 

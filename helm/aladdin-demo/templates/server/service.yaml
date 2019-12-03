@@ -8,7 +8,7 @@ metadata:
     app: {{ .Chart.Name }}-server
     githash: {{ .Values.deploy.imageTag | quote }}
   annotations:
-    service.beta.kubernetes.io/aws-load-balancer-ssl-cert: {{.Values.service.certificateArn | quote}}
+    service.beta.kubernetes.io/aws-load-balancer-ssl-cert: {{ .Values.service.certificateArn | quote }}
     service.beta.kubernetes.io/aws-load-balancer-backend-protocol: http
     service.beta.kubernetes.io/aws-load-balancer-ssl-ports: "443"
 spec:
@@ -19,18 +19,18 @@ spec:
   ports:
   - name: http
     port: {{ .Values.app.nginx.httpPort }}
-{{ if .Values.app.nginx.use }}
+    {{ if .Values.app.nginx.use }}
     targetPort: {{ .Values.app.nginx.port }}
-{{ else }}
+    {{ else }}
     targetPort: {{ .Values.app.uwsgi.port }}
-{{ end }}
+    {{ end }}
   - name: https
     port: {{ .Values.app.nginx.httpsPort }}
-{{ if .Values.app.nginx.use }}
+    {{ if .Values.app.nginx.use }}
     targetPort: {{ .Values.app.nginx.port }}
-{{ else }}
+    {{ else }}
     targetPort: {{ .Values.app.uwsgi.port }}
-{{ end }}
+    {{ end }}
   selector:
     # Get the aladdin-demo-server deployment configuration from sever/deploy.yaml
     name: {{ .Chart.Name }}-server

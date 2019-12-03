@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-echo "Building aladdin-demo docker image (~30 seconds)"
+echo "Building aladdin-demo docker image"
 
 BUILD_PATH="$(cd "$(dirname "$0")"; pwd)"
 PROJ_ROOT="$(cd "$BUILD_PATH/.." ; pwd)"

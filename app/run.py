@@ -49,4 +49,4 @@ if es_conn:
     app.add_route('/app/elasticsearch', ElasticsearchResource())
 app.add_route('/app', BaseResource())
 app.add_route('/app/busy', BusyResource())
-app.add_route('/ping', PingResource())
+app.add_route('/app/ping', PingResource())

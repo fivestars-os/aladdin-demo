@@ -27,12 +27,13 @@ app:
     initialDelay: 5
     period: 60
 
-# Configurations for setting up apm tracing
+# configurations for setting up apm tracing
 apm:
   enable: false
   datadog_trace_agent_hostname: datadog-agent.kube-system
   datadog_env:
 
+# this is for associating pods to nodes (https://kubernetes.io/docs/concepts/configuration/assign-pod-node/)
 affinity: critical-datadog-apm
 
 server:

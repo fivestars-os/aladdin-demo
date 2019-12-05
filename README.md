@@ -187,7 +187,7 @@ spec:
       # Number of seconds for the containers to perform a graceful shutdown,
       # after which it is violently terminated. This defaults to 30s, most apps may not need to change it
       terminationGracePeriodSeconds: {{ .Values.server.terminationGracePeriod }}
-      # Only schedule pods on nodes with the affinity: critical-datadog-apm label
+      # Only schedule pods on nodes with the the matching affinity label
       {{ if .Values.affinity }}
       nodeSelector:
         affinity: {{ .Values.affinity }}

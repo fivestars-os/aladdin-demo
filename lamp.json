@@ -5,5 +5,6 @@
     "docker_images": [
         "aladdin-demo",
         "aladdin-demo-commands"
-    ]
+    ],
+    "release_tag": "%Y-%m-%d-release"
 }

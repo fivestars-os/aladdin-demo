@@ -35,3 +35,5 @@ data:
       logformat: %(ftime) %(status) %(method) %(uri)
       logformat-strftime: true
       log-date: %%H:%%M:%%S
+
+      route: ^/app/ping donotlog:

@@ -5,10 +5,12 @@ RUN apk -Uuv add python py-pip
 
 # uwsgi in particular requires a lot of packages to install, delete them afterwards
 RUN apk add --no-cache \
-        gettext \
-        python3 \
         build-base \
+        gettext \
         linux-headers \
+        pcre \
+        pcre-dev \
+        python3 \
         python3-dev
 
 # copies requirements.txt to the docker container

@@ -452,4 +452,4 @@ With these components in place, we have now created a simple project with Aladdi
 - [Using Redis](docs/redis.md)
 - [Autoscaling](docs/autoscaling.md)
 - [Using Elasticsearch with StatefulSet](docs/elasticsearch_statefulset.md)
-
+- [Using Kubernetes RBAC](docs/kubernetes_rbac.md)

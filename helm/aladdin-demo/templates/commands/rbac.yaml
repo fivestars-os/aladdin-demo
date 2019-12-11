@@ -1,0 +1,43 @@
+{{ if .Values.rbac.enabled }}
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: {{ .Chart.Name }}-commands
+  labels:
+    project: {{ .Chart.Name }}
+    name: {{ .Chart.Name }}-commands
+    app: {{ .Chart.Name }}-commands
+    githash: {{ .Values.deploy.imageTag | quote }}
+rules:
+- apiGroups: [""]
+  resources: ["pods"]
+  verbs: ["get", "list"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: {{ .Chart.Name }}-commands
+  labels:
+    project: {{ .Chart.Name }}
+    name: {{ .Chart.Name }}-commands
+    app: {{ .Chart.Name }}-commands
+    githash: {{ .Values.deploy.imageTag | quote }}
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: {{ .Chart.Name }}-commands
+subjects:
+- kind: ServiceAccount
+  name: {{ .Chart.Name }}-commands
+  namespace: {{ .Release.Namespace }}
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: {{ .Chart.Name }}-commands
+  labels:
+    project: {{ .Chart.Name }}
+    name: {{ .Chart.Name }}-commands
+    app: {{ .Chart.Name }}-commands
+    githash: {{ .Values.deploy.imageTag | quote }}
+{{ end }}

@@ -64,3 +64,6 @@ elasticsearch:
     # use: true
     initialDelay: 10
     period: 30
+
+rbac:
+  enabled: true

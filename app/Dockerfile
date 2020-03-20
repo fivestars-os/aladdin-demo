@@ -18,7 +18,7 @@ RUN pip3 install --user --no-cache-dir -r requirements.txt
 FROM python:3.8-slim
 
 # Create unprivileged user account
-RUN useradd -m -r -U -d /home/aladdin-user aladdin-user
+RUN useradd -m -U -d /home/aladdin-user aladdin-user
 
 # switch to the unpriveleged user account
 USER aladdin-user

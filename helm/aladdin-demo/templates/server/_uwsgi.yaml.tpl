@@ -11,4 +11,5 @@ uwsgi:
   processes: {{ .Values.app.uwsgi.processes }}
   wsgi-file: run.py
   callable: app
+  py-autoreload: {{ .Values.app.uwsgi.autoreload }}
 {{ end }}

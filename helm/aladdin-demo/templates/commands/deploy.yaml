@@ -41,13 +41,4 @@ spec:
         ports:
         - containerPort: {{ .Values.app.uwsgi.port }}
           protocol: TCP
-{{ if .Values.deploy.withMount }}
-        volumeMounts:
-        - mountPath: /code/commands
-          name: {{ .Chart.Name }}-commands
-          subPath: app/commands_app/commands
-      volumes:
-      - name: {{ .Chart.Name }}-commands
-        persistentVolumeClaim:
-          claimName: {{ .Chart.Name }}-nfs-volume-claim
-{{ end }}
+        resources:

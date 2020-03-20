@@ -2,7 +2,7 @@
 
 You may want to mount a host directory into a container so that if code is updated on the host machine, the changes will be reflected in the container. This way you won't need to rebuild the container image every time. 
 
-Aladdin supports this with a `--with-mount` option, which is populated in Helm as `deploy.withMount` variable. Aladdin also populates `deploy.mountPath` to the root of your project repo. We can use these two variables to configure the correct mounts for our containers.
+Aladdin supports this with a `--with-mount` option, which is populated in Helm as `deploy.withMount` variable. We can then mount the volumes in the desired containers. 
 
 Here is how we recommend you configure your mounts:
 

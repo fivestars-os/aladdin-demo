@@ -8,6 +8,7 @@ from elasticsearch_util.elasticsearch_connection import es_conn
 class BaseResource(object):
     def on_get(self, req, resp):
         resp.status = falcon.HTTP_200
+        resp.content_type = "text/plain;charset=UTF-8"
         resp.body = '\n I can show you the world \n \n'
 
 

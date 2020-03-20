@@ -36,7 +36,6 @@ spec:
       - name: {{ .Chart.Name }}-uwsgi
         # Docker image for this container
         image: {{ .Values.deploy.ecr }}{{ .Chart.Name }}:{{ .Values.deploy.imageTag }}
-        workingDir: /home
         # Container port that is being exposed within the node
         ports:
         - containerPort: {{ .Values.app.uwsgi.port }}
@@ -48,7 +47,7 @@ spec:
             name: {{ .Chart.Name }}-uwsgi
             subPath: uwsgi.yaml
 {{ if .Values.deploy.withMount }}
-          - mountPath: /home
+          - mountPath: /srv
             name: {{ .Chart.Name }}-server
             subPath: app
 {{ end }} # /withMount

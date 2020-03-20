@@ -1,44 +1,40 @@
-FROM alpine:3.8
-
-# install python and pip with apk package manager
-RUN apk -Uuv add python py-pip
+FROM python:3.8-slim AS builder
 
 # uwsgi in particular requires a lot of packages to install, delete them afterwards
-RUN apk add --no-cache \
+RUN apt-get update && apt-get -y --no-install-recommends install \
         gettext \
-        python3 \
-        build-base \
-        linux-headers \
-        python3-dev
+        gcc \
+        g++ \
+        make \
+        libc6-dev \
+    && apt-get clean
 
 # copies requirements.txt to the docker container
 ADD requirements.txt requirements.txt
 
-# install requirements
-RUN pip3 install --upgrade pip
-RUN pip3 install --no-cache-dir -r requirements.txt
+# Install requirements
+RUN pip3 install --user --no-cache-dir -r requirements.txt
 
-# clean up environment by deleting extra packages
-RUN apk del \
-        build-base \
-        linux-headers \
-        python3-dev
+FROM python:3.8-slim
 
-# specify the directory that CMD executes from
-WORKDIR /home
-
-# copy over the directory into docker container with given path
-COPY . /home
-
-# create unprivileged user account
-RUN addgroup aladdin-user && \
-    adduser -SD -G aladdin-user aladdin-user
+# Create unprivileged user account
+RUN useradd -m -r -U -d /home/aladdin-user aladdin-user
 
 # switch to the unpriveleged user account
 USER aladdin-user
 
 # display how old the python libraries are
 RUN pip3 list --no-cache-dir --outdated
+
+# specify the directory that CMD executes from
+WORKDIR /srv
+
+# Copy installed python packages from build container
+COPY --from=builder --chown=aladdin-user:aladdin-user /root/.local /home/aladdin-user/.local
+ENV PATH /home/aladdin-user/.local/bin:$PATH
+
+# copy over the directory into docker container with given path
+COPY app /srv
 
 # run the application with uwsgi once the container has been created
 ENTRYPOINT ["/bin/sh", "entrypoint.sh"]

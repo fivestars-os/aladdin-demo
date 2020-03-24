@@ -5,7 +5,7 @@
 # to run the service.
 FROM python:3.8-slim AS builder
 
-# uwsgi in particular requires a lot of packages to install, delete them afterwards
+# Install packages required to build native library components
 RUN apt-get update && apt-get -y --no-install-recommends install \
         gettext \
         gcc \

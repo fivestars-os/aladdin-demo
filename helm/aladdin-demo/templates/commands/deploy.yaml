@@ -41,4 +41,12 @@ spec:
         ports:
         - containerPort: {{ .Values.app.uwsgi.port }}
           protocol: TCP
-        resources:
+{{ if .Values.deploy.withMount }}
+        volumeMounts:
+        - mountPath: /code/commands
+          name: {{ .Chart.Name }}-commands
+      volumes:
+      - name: {{ .Chart.Name }}-commands
+        hostPath:
+          path: {{ .Values.deploy.mountPath }}/app/commands_app/commands
+{{ end }} # /withMount

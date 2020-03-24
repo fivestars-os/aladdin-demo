@@ -23,15 +23,15 @@ RUN useradd -m -U -d /home/aladdin-user aladdin-user
 # switch to the unpriveleged user account
 USER aladdin-user
 
-# display how old the python libraries are
-RUN pip3 list --no-cache-dir --outdated
-
 # specify the directory that CMD executes from
 WORKDIR /srv
 
 # Copy installed python packages from build container
 COPY --from=builder --chown=aladdin-user:aladdin-user /root/.local /home/aladdin-user/.local
 ENV PATH /home/aladdin-user/.local/bin:$PATH
+
+# display how old the python libraries are
+RUN pip3 list --no-cache-dir --outdated
 
 # copy over the directory into docker container with given path
 COPY app /srv

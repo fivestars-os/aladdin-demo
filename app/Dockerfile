@@ -1,44 +1,49 @@
-FROM alpine:3.8
+### BUILD IMAGE ###
+# Set up the build environment.  We need to build in a container that has everything
+# needed to build and install our pip dependencies that have native parts, but we'd
+# rather not include gcc et al. in the final service image since they're not needed
+# to run the service.
+FROM python:3.8-slim AS builder
 
-# install python and pip with apk package manager
-RUN apk -Uuv add python py-pip
-
-# uwsgi in particular requires a lot of packages to install, delete them afterwards
-RUN apk add --no-cache \
+# Install packages required to build native library components
+RUN apt-get update && apt-get -y --no-install-recommends install \
         gettext \
-        python3 \
-        build-base \
-        linux-headers \
-        python3-dev
+        gcc \
+        g++ \
+        make \
+        libc6-dev \
+    && apt-get clean
 
 # copies requirements.txt to the docker container
 ADD requirements.txt requirements.txt
 
-# install requirements
-RUN pip3 install --upgrade pip
-RUN pip3 install --no-cache-dir -r requirements.txt
+# Install requirements into ~/.local where they'll be easy to copy out.
+RUN pip3 install --user --no-cache-dir -r requirements.txt
+### END BUILD IMAGE ###
 
-# clean up environment by deleting extra packages
-RUN apk del \
-        build-base \
-        linux-headers \
-        python3-dev
 
-# specify the directory that CMD executes from
-WORKDIR /home
+### SERVICE IMAGE ###
+FROM python:3.8-slim
 
-# copy over the directory into docker container with given path
-COPY . /home
-
-# create unprivileged user account
-RUN addgroup aladdin-user && \
-    adduser -SD -G aladdin-user aladdin-user
+# Create unprivileged user account
+RUN useradd -m -U -d /home/aladdin-user aladdin-user
 
 # switch to the unpriveleged user account
 USER aladdin-user
 
+# specify the directory that CMD executes from
+WORKDIR /srv
+
+# Copy installed python packages from build image and include them in $PATH.
+COPY --from=builder --chown=aladdin-user:aladdin-user /root/.local /home/aladdin-user/.local
+ENV PATH /home/aladdin-user/.local/bin:$PATH
+
 # display how old the python libraries are
 RUN pip3 list --no-cache-dir --outdated
 
+# copy over the directory into docker container with given path
+COPY app /srv
+
 # run the application with uwsgi once the container has been created
 ENTRYPOINT ["/bin/sh", "entrypoint.sh"]
+### END SERVICE IMAGE ###

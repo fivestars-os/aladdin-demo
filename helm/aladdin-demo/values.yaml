@@ -3,6 +3,7 @@
 
 app:
   uwsgi:
+    autoreload: 0
     port: 8000
     # processes: 16
   nginx:

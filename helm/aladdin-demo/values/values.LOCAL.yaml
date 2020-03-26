@@ -2,6 +2,7 @@
 # Application configuration
 app:
   uwsgi:
+    autoreload: 1
     port: 8000
     processes: 2
   nginx:

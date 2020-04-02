@@ -17,5 +17,5 @@ def get_aladdin_demo_pods():
     v1 = client.CoreV1Api()
     res = v1.list_namespaced_pod(
         namespace=os.environ["NAMESPACE"],
-        label_selector=f"project={os.environ['PROJECT_NAME']}")
+        label_selector="project=" + os.environ['PROJECT_NAME'])
     return [r.metadata.name for r in res.items]

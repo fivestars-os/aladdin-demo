@@ -33,9 +33,10 @@ import os
 
 redis_conn = None
 if os.environ["REDIS_CREATE"] == "true":
+    project_name = os.environ["PROJECT_NAME"].upper().replace("-", "_")
     redis_conn = redis.StrictRedis(
-                host=os.environ["ALADDIN_DEMO_REDIS_SERVICE_HOST"],
-                port=os.environ["ALADDIN_DEMO_REDIS_SERVICE_PORT"],
+                host=os.environ[project_name + "_REDIS_SERVICE_HOST"],
+                port=os.environ[project_name + "_REDIS_SERVICE_PORT"],
             )
 ```
 We populate redis with a simple message in [redis_populate.py](../app/redis_util/redis_populate.py). This code is excuted by an initContainer, which we will explain in more detail below.

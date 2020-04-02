@@ -10,6 +10,7 @@ metadata:
 # Create key - value entries in the data map that other files can look up
 # Load them into the environment by using configMapRef in the deploy.yaml file
 data:
+  PROJECT_NAME: {{ .Chart.Name }}
   REDIS_CREATE: {{ .Values.redis.create | quote }}
   ELASTICSEARCH_CREATE: {{ .Values.elasticsearch.create | quote }}
   ELASTICSEARCH_POPULATE: {{ .Values.elasticsearch.populate | quote }}

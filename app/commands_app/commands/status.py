@@ -22,8 +22,13 @@ def print_status(arg):
 
 def print_aladdin_demo_server_status():
     print("pinging aladdin-demo-server ...")
-    host = os.environ["ALADDIN_DEMO_SERVER_SERVICE_HOST"]
-    port = os.environ["ALADDIN_DEMO_SERVER_SERVICE_PORT"]
+
+    # These environment variables are provided by kubernetes and are how we discover the address of
+    # the redis service
+    project_name = os.environ["PROJECT_NAME"].upper().replace("-", "_")
+    host = os.environ[project_name + "_SERVER_SERVICE_HOST"]
+    port = os.environ[project_name + "_SERVER_SERVICE_PORT"]
+
     url = "http://{}:{}/ping".format(host, port)
     try:
         r = requests.get(url)

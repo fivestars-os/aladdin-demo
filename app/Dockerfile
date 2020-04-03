@@ -42,7 +42,7 @@ ENV PATH /home/aladdin-user/.local/bin:$PATH
 RUN pip3 list --no-cache-dir --outdated
 
 # copy over the directory into docker container with given path
-COPY app /srv
+COPY . /srv
 
 # run the application with uwsgi once the container has been created
 ENTRYPOINT ["/bin/sh", "entrypoint.sh"]

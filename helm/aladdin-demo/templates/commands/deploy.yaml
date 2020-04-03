@@ -28,13 +28,6 @@ spec:
       - image: {{ .Values.deploy.ecr }}{{ .Chart.Name }}-commands:{{ .Values.deploy.imageTag }}
         imagePullPolicy: {{.Values.deploy.imagePullPolicy}}
         name: {{ .Chart.Name }}-commands
-        env:
-          - name: PROJECT_NAME
-            value: {{ .Chart.Name }}
-          - name: NAMESPACE
-            valueFrom:
-              fieldRef:
-                fieldPath: metadata.namespace
         envFrom:
         - configMapRef:
             name: {{ .Chart.Name }}

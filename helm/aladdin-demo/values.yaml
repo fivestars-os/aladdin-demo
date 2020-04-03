@@ -37,6 +37,10 @@ deploy:
 
 redis:
   # create: true
+
+  # Override this for environments where redis is not managed by kubernetes.
+  # host: <project-name>-redis.<namespace>
+
   port: 6379
   containerPort: 6379
   liveness:

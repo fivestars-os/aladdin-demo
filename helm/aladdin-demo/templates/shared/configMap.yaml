@@ -12,6 +12,14 @@ metadata:
 data:
   PROJECT_NAME: {{ .Chart.Name }}
   REDIS_CREATE: {{ .Values.redis.create | quote }}
+
+  # Specifying this here instead of in values.yaml allows us to avoid hardcoding the
+  # hostname (aladdin-demo-redis) in a way that would break when this repo was copied
+  # and used as a template.
+  {{- $defaultRedisServiceHost := printf "%s-redis.%s" .Chart.Name .Release.Namespace  }}
+  REDIS_SERVICE_HOST: {{ .Values.redis.host | default $defaultRedisServiceHost | quote }}
+  REDIS_SERVICE_PORT: {{ .Values.redis.port | quote }}
+
   ELASTICSEARCH_CREATE: {{ .Values.elasticsearch.create | quote }}
   ELASTICSEARCH_POPULATE: {{ .Values.elasticsearch.populate | quote }}
   ELASTICSEARCH_HOST: {{ .Chart.Name }}-elasticsearch

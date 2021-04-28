@@ -1,5 +1,5 @@
-apiVersion: autoscaling/v2beta1
 # This is an autoscaler for aladdin-demo
+apiVersion: autoscaling/v2beta1
 kind: HorizontalPodAutoscaler
 metadata:
   name: {{ .Chart.Name }}-hpa

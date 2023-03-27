@@ -1,4 +1,4 @@
 elasticsearch>=5.0.5,<6.0.0
 requests==2.22.0
-redis==2.10.6
+redis==4.5.3
 kubernetes==10.0.1
